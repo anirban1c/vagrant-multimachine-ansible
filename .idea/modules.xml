@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/DemoMultiTennant.iml" filepath="$PROJECT_DIR$/DemoMultiTennant.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vagrant-multimachine-ansible.iml" filepath="$PROJECT_DIR$/vagrant-multimachine-ansible.iml" />
     </modules>
   </component>
 </project>
