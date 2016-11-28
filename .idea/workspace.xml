@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="c74680aa-77fb-497e-bee0-cb007d9f32b8" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/provisioning/roles/ansible-nginx" afterPath="$PROJECT_DIR$/provisioning/roles/ansible-nginx" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
     </list>
     <ignored path="DemoMultiTennant.iws" />
@@ -122,8 +121,8 @@
       <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+            <state relative-caret-position="525">
+              <caret line="35" column="43" selection-start-line="35" selection-start-column="43" selection-end-line="35" selection-end-column="43" />
               <folding />
             </state>
           </provider>
@@ -908,12 +907,12 @@
       <workItem from="1480155411650" duration="85000" />
       <workItem from="1480155551110" duration="2362000" />
       <workItem from="1480159273660" duration="19658000" />
-      <workItem from="1480205503706" duration="60099000" />
+      <workItem from="1480205503706" duration="60254000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="82204000" />
+    <option name="totallyTimeSpent" value="82359000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="6" y="23" width="1434" height="873" extended-state="6" />
@@ -1376,8 +1375,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="3" column="0" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+        <state relative-caret-position="525">
+          <caret line="35" column="43" selection-start-line="35" selection-start-column="43" selection-end-line="35" selection-end-column="43" />
           <folding />
         </state>
       </provider>
