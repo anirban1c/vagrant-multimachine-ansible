@@ -1,0 +1,39 @@
+# {{ ansible_managed }}
+
+{% set item = (nginx_default_sites['default'] | combine(item.value, recursive=True)) %}
+
+{% if item.upstreams %}
+{%- for upstream in item.upstreams %}
+
+upstream {{ upstream.name }}-upstream {
+{% for server in upstream.servers %}
+  server {{ server }};
+{% endfor %}
+}
+{% endfor %}
+{% endif %}
+
+server {
+  listen {{ item.listen_http }}{{ ' default deferred' if item.default_server else '' }};
+  server_name {{ item.domains | join(' ') }};
+  root {{ nginx_letsencrypt_root }};
+
+  location /.well-known/acme-challenge/ {
+    default_type "text/plain";
+
+    try_files $uri =404;
+  }
+
+  location ~ / {
+    {% for upstream in item.upstreams %}
+        error_page 405 = 200 $uri;
+        proxy_pass http://{{ upstream.name }}-upstream;
+      }
+    {% endfor %}
+
+
+  }
+
+
+
+
