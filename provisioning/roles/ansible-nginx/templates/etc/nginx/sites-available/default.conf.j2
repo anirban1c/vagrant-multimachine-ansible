@@ -26,7 +26,7 @@ server {
 
   location ~ / {
     {% for upstream in item.upstreams %}
-        error_page 405 = 200 $uri;
+
         proxy_pass http://{{ upstream.name }}-upstream;
       }
     {% endfor %}
