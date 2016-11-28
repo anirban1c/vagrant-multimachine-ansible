@@ -23,7 +23,7 @@ A vagrant provisioning for multi-machine with ansible
     vagrant up web1
     vagrant up app1
     vagrant up app2
-3. Test from the host
+3. Test from the host (ensure you have added the ssh private keys to the host first)
     nosetests -v --rednose
 4. If everything works and no errors
      A sample application to get all the road works by road name
