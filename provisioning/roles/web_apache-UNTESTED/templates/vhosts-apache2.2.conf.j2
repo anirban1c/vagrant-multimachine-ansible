@@ -1,0 +1,34 @@
+<VirtualHost *:80>
+    # For Apache 2.2
+    ServerName www.example.com
+    ServerAlias example.com
+    # Redirect permanent / https://{{ project_name }}.com/
+
+    WSGIDaemonProcess {{ project_name }} python-path={{ src_dir }}:{{ venv_dir }}/lib/python3.4/site-packages python-eggs=/tmp
+    WSGIProcessGroup {{ project_name }}
+    WSGIPassAuthorization On
+
+    Alias /robots.txt {{ src_dir }}/static/robots.txt
+
+    Alias /media/ {{ media_dir }}
+    Alias /static/ {{ static_dir }}
+
+    <Directory {{ static_dir }}>
+        AllowOverride None
+    </Directory>
+
+    <Directory {{ media_dir }}>
+        AllowOverride None
+    </Directory>
+
+    WSGIScriptAlias / {{ wsgi_filepath }}
+
+    <Directory {{ django_conf_dir }}/wsgi >
+        <Files prod.py>
+            AllowOverride None
+        </Files>
+    </Directory>
+
+    CustomLog {{ apache_access_log_file }} combined
+    ErrorLog {{ apache_error_log_file }}
+</VirtualHost>

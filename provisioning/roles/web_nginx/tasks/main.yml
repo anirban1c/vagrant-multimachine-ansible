@@ -1,0 +1,100 @@
+---
+
+# Will add NGINX source to apt for latest version
+- name: Ensure apt source file is present
+  file:
+    path: /etc/apt/sources.list.d/nginx.list
+    state: touch
+  tags: deploy
+
+# Add source locs
+- lineinfile: dest=/etc/apt/sources.list.d/nginx.list line="deb http://nginx.org/packages/debian/ jessie nginx"
+- lineinfile: dest=/etc/apt/sources.list.d/nginx.list line="deb-src http://nginx.org/packages/debian/ jessie nginx"
+
+- name: Download PGP key for nginx
+  shell: curl http://nginx.org/keys/nginx_signing.key | apt-key add -
+
+
+- name: Install Nginx
+  apt: name=nginx-full state=present force=yes
+  tags: packages
+
+- name: Create sites-available dir
+  file:
+    path: /etc/nginx/sites-available/
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: root
+    mode: u=rw,g=rwX,o=
+  tags: deploy
+
+- name: Create sites-enabled dir
+  file:
+    path: /etc/nginx/sites-enabled/
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: root
+    mode: u=rw,g=rwX,o=
+  tags: deploy
+
+# This is wrong. Do this manually for now.
+- lineinfile: dest=/etc/nginx/nginx.conf line="include /etc/nginx/sites-enabled/*;"
+
+# MANUAL TO-DO:
+# Also check that nginx user is correct (might need to change to www-data from nginx)
+
+- name: Copy the SSL certificate to the remote server
+  copy: content="{{ ssl_crt }}" dest={{ ssl_dest_dir }}/{{ project_name }}.crt
+  when: use_https == true
+  notify: restart nginx
+
+- name: Copy the SSL private key to the remote server
+  copy: content="{{ ssl_key }}" dest={{ ssl_dest_dir }}/{{ project_name }}.key
+  when: use_https == true
+  notify: restart nginx
+
+# nginx should have read access to the cert and key
+- name: Make nginx owner of cert and key files and restrict access
+  file:
+    path: "{{ item }}"
+    owner: "{{ webserver_user }}"
+    mode: u=r,g=r,o=
+  when: use_https == true
+  with_items:
+    - "{{ ssl_cert_path }}"
+    - "{{ ssl_cert_key_path }}"
+    - "{{ ssl_trust_cert_path }}"
+
+# Template is in project-specific provision/templates dir
+- name: Create the Nginx HTTPS configuration file
+  template: src=nginx_site_config_https.j2
+            dest=/etc/nginx/sites-available/{{ project_name }}
+            backup=yes
+  when: use_https == true
+  notify: reload nginx
+
+- name: Create the Nginx HTTP configuration file
+  template: src=nginx_site_config_http.j2
+            dest=/etc/nginx/sites-available/{{ project_name }}
+            backup=yes
+  when: use_https == false
+  notify: reload nginx
+
+- name: Ensure that the default site is disabled
+  command: rm /etc/nginx/sites-enabled/default
+           removes=/etc/nginx/sites-enabled/default
+  notify: reload nginx
+
+- name: Ensure that the default site is disabled in conf
+  command: rm /etc/nginx/conf.d/default.conf
+           removes=/etc/nginx/conf.d/default.conf
+  notify: reload nginx
+
+- name: Ensure that the application site is enabled
+  command: ln -s /etc/nginx/sites-available/{{ project_name }}
+           /etc/nginx/sites-enabled/{{ project_name }}
+           creates=/etc/nginx/sites-enabled/{{ project_name }}
+  notify: reload nginx
+
+- name: Ensure Nginx service is started
+  service: name=nginx state=started enabled=yes

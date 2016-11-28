@@ -1,0 +1,13 @@
+#!/bin/sh
+
+DJANGODIR={{ src_dir }}
+export PYTHON_EGG_CACHE=/tmp
+
+# Activate the virtual environment.
+cd $DJANGODIR
+. {{ venv_dir }}/bin/activate
+# . {{ venv_dir }}/bin/postactivate   Not using env variables for now
+
+# Programs meant to be run under supervisor should not daemonize themselves
+# (do not use --daemon).
+exec celery --app={{ project_name }}:celery_app worker --events --loglevel=info --concurrency={{ celery_num_procs }} --hostname=worker3.%h --queues={{celery_queue2 }} -Ofair

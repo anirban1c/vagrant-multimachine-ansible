@@ -1,0 +1,129 @@
+---
+
+# Must do this with easy_install so that it correctly links to image libraries
+- name: Install Pillow
+  easy_install: virtualenv={{ venv_dir }} name=Pillow
+  when: use_pillow == true
+
+- name: Install matplotlib with easy_install so jpg lib is used
+  easy_install: virtualenv={{ venv_dir }} name=matplotlib
+  when: use_scientific == true
+
+
+- name: Install packages required by the Django app inside virtualenv
+  pip: virtualenv={{ venv_dir }} requirements={{ python_requirements_file }}
+
+
+# Create .env file containing django/project-specific configuration data
+- name: Create .env configuration file with open perms
+  template:
+    src: env.conf.j2
+    dest: "{{ django_conf_dir }}/.env"
+    owner: "{{ proj_user }}"
+    group: "{{ proj_group }}"
+    mode: 0770
+  when: vagrant_mode == true
+  tags: deploy
+
+- name: Create .env configuration file with production perms
+  template:
+    src: env.conf.j2
+    dest: "{{ django_conf_dir }}/.env"
+    owner: "{{ proj_user }}"
+    group: "{{ proj_group }}"
+    mode: 0400
+  when: vagrant_mode == false
+  tags: deploy
+
+- name: Create python-egg dir
+  file:
+    path: "{{ home_dir }}/python-eggs"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwx,g=rwX,o=
+  tags: deploy
+
+- name: Create media dir
+  file:
+    path: "{{ media_dir }}"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rwX,o=
+  tags: deploy
+
+- name: Create sub dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rwX,o=
+  with_items: "{{ media_subdirs }}"
+  tags: deploy
+
+- name: Create static dir
+  file:
+    path: "{{ static_dir }}"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rwX,o=
+  tags: deploy
+
+- name: Create static cache dir
+  file:
+    path: "{{ static_dir }}/CACHE"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rwX,o=
+  tags: deploy
+
+- name: Ensure manage.py perms are set
+  file:
+    path: "{{ src_dir }}/manage.py"
+    owner: "{{ proj_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwx,g=rx,o=
+  tags: deploy
+
+- name: Make Django migrations
+  django_manage:
+    command: makemigrations
+    app_path: "{{ src_dir }}"
+    virtualenv: "{{ venv_dir }}"
+    settings: "{{ django_settings_file }}"
+  environment: django_environment
+  when: run_django_makemigrations is defined and run_django_makemigrations
+  tags: django.makemigrations
+
+- name: Apply Django migrations
+  django_manage:
+    command: migrate
+    app_path: "{{ src_dir }}"
+    virtualenv: "{{ venv_dir }}"
+    settings: "{{ django_settings_file }}"
+  environment: django_environment
+  when: run_django_migrate is defined and run_django_migrate
+  tags: django.migrate
+
+- name: Run bower install
+  django_manage:
+    command: "bower_install"
+    app_path: "{{ src_dir }}"
+    virtualenv: "{{ venv_dir }}"
+    settings: "{{ django_settings_file }}"
+  environment: django_environment
+  tags: django.bower
+
+- name: Run collectstatic
+  django_manage:
+    command: collectstatic
+    app_path: "{{ src_dir }}"
+    virtualenv: "{{ venv_dir }}"
+    settings: "{{ django_settings_file }}"
+  environment: django_environment
+  when: run_django_collectstatic is defined and run_django_collectstatic
+  tags: django.collectstatic

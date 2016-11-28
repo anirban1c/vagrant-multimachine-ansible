@@ -1,0 +1,59 @@
+
+# There are more recent versions of Python but these are currently in the core package dist
+- name: Install base packages
+  apt: name={{ item }} update_cache={{ update_apt_cache }} force=yes state=installed
+  with_items:
+    - build-essential
+    - python3
+    - python3-dev
+    - python3-pip
+    - supervisor
+    - redis-server
+  tags: packages
+
+# These may not all be found. May have to install some manually.
+- name: Install Pillow Debian dependencies
+  apt: name={{ item }} state=installed
+  ignore_errors: yes
+  with_items:
+    - libwebp
+    - libwebp-dev
+    - libwebp5
+    - webp
+    - libtiff5
+    - libtiff5-dev
+    - libtiff
+    - libtiff-dev
+    - python-libtiff
+    - libfreetype6
+    - libfreetype6-dev
+    - tk
+    - tk-dev
+    - liblcms2-2
+    - liblcms2-dev
+    - libjpeg8
+    - libjpeg8-dev
+    - python-liblcms
+  when: use_pillow == true and ansible_os_family == "Debian"
+
+
+# INSTALL SCIPY STACK
+- name: Numpy/Scipy -- Install using apt.
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - libblas-dev
+    - liblapack-dev
+    - gfortran
+  when: use_scientific == true
+
+- name: Install matplotlib requirements
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - libxft-dev
+    - libjpeg-dev
+    - libfreetype6-dev
+    - libpng12-dev
+    - librsvg2-common
+    - texlive-latex-extra
+    - texlive-extra-utils
+  when: use_scientific == true

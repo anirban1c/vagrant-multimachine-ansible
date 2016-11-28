@@ -1,0 +1,56 @@
+---
+
+# Set up log files
+- name: Create project log dir if not already present
+  file:
+    path: "{{ log_dir }}"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwX,g=rw,o=rX
+
+- name: Create supervisor log file if not already present
+  file:
+    path: "{{ supervisor_log_file }}"
+    state: touch
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rw,o=
+
+
+# Install supervisor
+- name: Ensure supervisor is installed
+  apt: name=supervisor state=present
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure supervisor is installed
+  yum: name=supervisor state=present
+  when: ansible_os_family == 'RedHat'
+
+
+# Access permissions
+- name: Users like webserver and proj can access path to src and to app log
+  file:
+    path: "{{ item }}"
+    mode: g+rX,o=rX
+    state: directory
+  with_items:
+    - "/opt/"
+    - "/opt/{{ project_name }}/"
+    - "/opt/{{ project_name }}/python-eggs/"
+    - "{{ home_dir }}"
+    - "/var/"
+    - "/var/log/"
+    - "{{ log_dir }}"
+
+
+# Configure supervisor
+- name: Create the Supervisor config file
+  template: src=supervisor_config.j2
+            dest=/etc/supervisor/conf.d/{{ project_name }}.conf
+            backup=yes
+
+- name: Re-read the Supervisor config files
+  supervisorctl: name={{ project_name }} state=present
+  notify: restart supervisor
+

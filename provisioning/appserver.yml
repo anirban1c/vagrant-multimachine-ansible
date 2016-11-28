@@ -1,0 +1,49 @@
+---
+
+- name: Create a(n) "{{ project_name }}" virtual machine via vagrant
+  hosts: app-servers
+  become: yes
+  become_user: root
+  remote_user: vagrant
+  #remote_user: "{{proj_user}}"
+
+  # Specify systems here for database, webserver. OS can be found in {{ ansible_os_family}} variable.
+  vars:
+    - setup_git_repo: no
+
+  vars_files:
+    - group_vars/all.yml
+    - "host_vars/{{ ansible_os_family }}.yml"
+    - group_vars/vagrant.yml
+
+
+
+  pre_tasks:
+
+        - group: name="admins" state=present
+
+        # Add the user 'james' with a bash shell, appending the group 'admins' and 'developers' to the user's groups
+        - user: name="{{proj_user}}" shell=/bin/bash groups=admins append=yes
+
+        - name: Copy sudoers file for safety
+          command: cp -f /etc/sudoers /etc/sudoers.tmp
+
+        - name: Create sudoers file backup
+          command: cp -f /etc/sudoers /etc/sudoers.bak
+
+        - name: Create admins group
+          group: name=admins system=yes state=present
+
+        - name: make sure we can sudo as admin group
+          lineinfile: dest=/etc/sudoers.tmp state=present regexp='^%admin' line='%admin ALL=(ALL) ALL'
+
+        - name: also make sure ssh-agent works via sudo
+          lineinfile: dest=/etc/sudoers.tmp state=present regexp='^Defaults env_keep\+\=SSH_AUTH_SOCK' line='Defaults env_keep+=SSH_AUTH_SOCK'
+
+        - name: Final sudoers file check
+          shell: visudo -q -c -f /etc/sudoers.tmp && cp -f /etc/sudoers.tmp /etc/sudoers
+
+
+  roles:
+      - venv_gunicorn
+      - supervisor

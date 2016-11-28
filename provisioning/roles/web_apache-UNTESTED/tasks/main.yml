@@ -1,0 +1,74 @@
+---
+# Set up Apache as web server on CentOS.
+# Does not set up any site-specific data or configurations.
+
+- name: Ensure Apache is installed.
+  yum:
+    name: "{{ item }}"
+    state: installed
+    enablerepo: "{{ apache_enablerepo }}"
+  with_items: apache_packages
+
+- name: Configure Apache.
+  lineinfile:
+    dest: "{{ apache_server_root }}/conf/{{ apache_daemon }}.conf"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items: apache_ports_configuration_items
+  notify: restart apache
+
+# INSTALL MOD_WSGI from source, using Python 3
+- name: Retrieve mod_wsgi tarball
+  get_url:
+    url: https://github.com/GrahamDumpleton/mod_wsgi/archive/4.4.13.tar.gz
+    dest: /root/mod_wsgi-4.4.13.tar.gz
+    mode: 0740
+  register: get_wsgi_url_result
+
+- name: Unpack mod_wsgi tarball
+  unarchive:
+    src: /root/mod_wsgi-4.4.13.tar.gz
+    dest: /root/
+    copy: no
+  when: get_wsgi_url_result.changed
+
+- name: Configure mod_wsgi using Python 3.4
+  command: ./configure --with-python=/usr/bin/python3.4 chdir=/root/mod_wsgi-4.4.13
+  when: get_wsgi_url_result.changed
+
+- name: make wsgi
+  command: make chdir=/root/mod_wsgi-4.4.13
+  when: get_wsgi_url_result.changed
+
+- name: make install wsgi
+  command: make install chdir=/root/mod_wsgi-4.4.13
+  when: get_wsgi_url_result.changed
+
+- name: Enable mod_wsgi in apache conf
+  lineinfile:
+    dest: "{{ apache_server_root }}/conf/{{ apache_daemon }}.conf"
+    regexp: "^LoadModule wsgi_module "
+    line: LoadModule wsgi_module modules/mod_wsgi.so
+    state: present
+  notify: restart apache
+
+- name: Clean up wsgi install
+  shell: make clean chdir=/root/mod_wsgi-4.4.13
+  when: get_wsgi_url_result.changed
+
+
+- name: Ensure Apache is started and enabled on boot.
+  service:
+    name: "{{ apache_daemon }}"
+    state: started
+    enabled: yes
+
+- name: Add apache vhosts configuration.
+  template:
+    src: "vhosts-apache{{ apache_vhosts_version }}.conf.j2"
+    dest: "{{ vhost_conf_path }}/{{ apache_vhosts_filename }}"
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart apache

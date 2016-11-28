@@ -1,0 +1,79 @@
+[program:{{ celery_appname }}]
+command={{ celery_scripts_dir }}/{{ celery_appname }}_start
+
+user={{ celery_user }}
+
+stdout_logfile={{ celery_log_file }}
+stderr_logfile={{ celery_log_file }}
+redirect_stderr = true
+
+autostart=true
+autorestart=true
+startsecs=10
+
+; Need to wait for currently executing tasks to finish at shutdown.
+; Increase this if you have very long running tasks.
+stopwaitsecs = 600
+
+; When resorting to send SIGKILL to the program to terminate it
+; send SIGKILL to its whole process group instead,
+; taking care of its children as well.
+killasgroup=true
+
+; Set Celery priority higher than default (999)
+; so, if rabbitmq is supervised, it will start first.
+priority=1000
+
+
+[program:{{ celery_appname }}2]
+command={{ celery_scripts_dir }}/{{ celery_appname }}2_start
+
+user={{ celery_user }}
+
+stdout_logfile={{ celery_log_file }}
+stderr_logfile={{ celery_log_file }}
+redirect_stderr = true
+
+autostart=true
+autorestart=true
+startsecs=10
+
+; Need to wait for currently executing tasks to finish at shutdown.
+; Increase this if you have very long running tasks.
+stopwaitsecs = 600
+
+; When resorting to send SIGKILL to the program to terminate it
+; send SIGKILL to its whole process group instead,
+; taking care of its children as well.
+killasgroup=true
+
+; Set Celery priority higher than default (999)
+; so, if rabbitmq is supervised, it will start first.
+priority=1000
+
+
+[program:{{ celery_appname }}3]
+command={{ celery_scripts_dir }}/{{ celery_appname }}3_start
+
+user={{ celery_user }}
+
+stdout_logfile={{ celery_log_file }}
+stderr_logfile={{ celery_log_file }}
+redirect_stderr = true
+
+autostart=true
+autorestart=true
+startsecs=10
+
+; Need to wait for currently executing tasks to finish at shutdown.
+; Increase this if you have very long running tasks.
+stopwaitsecs = 600
+
+; When resorting to send SIGKILL to the program to terminate it
+; send SIGKILL to its whole process group instead,
+; taking care of its children as well.
+killasgroup=true
+
+; Set Celery priority higher than default (999)
+; so, if rabbitmq is supervised, it will start first.
+priority=1000

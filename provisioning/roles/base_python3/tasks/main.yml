@@ -1,0 +1,13 @@
+---
+
+# Setup/install tasks according to OS.
+- include: setup_Debian.yml
+  when: ansible_os_family == "Debian"
+
+- include: setup_RedHat.yml
+  when: ansible_os_family == "RedHat"
+
+- name: Install virtualenv
+  pip: name=virtualenv executable=pip3
+  tags: packages
+

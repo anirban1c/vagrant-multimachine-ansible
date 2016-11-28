@@ -1,0 +1,155 @@
+# Limit # of simultaneous connections per session
+# Directive describes the zone, in which the session states are stored.
+# 1m can handle 32000 sessions with 32 bytes/session, set to 5m x 32000 session
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+upstream wsgi_server {
+    # fail_timeout=0 means we always retry an upstream even if it failed
+    # to return a good HTTP response (in case the Unicorn master nukes a
+    # single worker for timing out).
+
+    server unix:/opt/{{ project_name }}/env/run/gunicorn.sock fail_timeout=0;
+}
+
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name example.com www.example.com;
+
+    client_max_body_size 4M;
+
+    # Redirect all HTTP requests to HTTPS with a 301 Moved Permanently response.
+    return 301 https://$host$request_uri;
+}
+
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name example.com www.example.com;
+    ssl on;
+
+    ssl_certificate             /etc/ssl/localcerts/projectcom.crt;
+    ssl_certificate_key         /etc/ssl/localcerts/projectcom.key;
+    ssl_trusted_certificate     /etc/ssl/localcerts/trust_chain.pem;
+
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+    ssl_protocols TLSv1.2;
+    ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
+    ssl_prefer_server_ciphers on;
+
+    # HSTS (ngx_http_headers_module is required) (15768000 seconds = 6 months)
+    add_header Strict-Transport-Security max-age=15768000;
+    client_max_body_size 4M;
+
+    # OCSP Stapling ---
+    # fetch OCSP records from URL in ssl_certificate and cache them
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 valid=360s ipv6=off; # Google DNS
+    resolver_timeout 30s;  # 30s default
+
+    keepalive_timeout 70;
+
+    # Only requests to our Host are allowed (e.g. www.forgesolar.com)
+    if ($host !~ ^(forgesolar.com|www.forgesolar.com)$ ) {
+        return 444;
+    }
+
+    # Only allow these request methods ##
+    if ($request_method !~ ^(GET|HEAD|POST|PUT)$ ) {
+        return 444;
+    }
+
+    # Block download agents and robots
+    if ($http_user_agent ~* LWP::Simple|BBBike|wget) {
+        return 403;
+    }
+    if ($http_user_agent ~* msnbot|scrapbot) {
+        return 403;
+    }
+    # Deny spammy referrers
+    if ( $http_referer ~* (babes|forsale|girl|jewelry|love|nudit|organic|poker|porn|sex|teen) )
+    {
+        # return 404;
+        return 403;
+    }
+
+    access_log /var/log/{{ project_name }}/nginx_access.log;
+    error_log /var/log/{{ project_name }}/nginx_error.log;
+
+    location /static/ {
+        alias   /var/opt/{{ project_name }}/static/;
+        # Stop deep linking/hotlinking images
+        valid_referers none blocked www.forgesolar.com forgesolar.com;
+        if ($invalid_referer) {
+            return   403;
+        }
+    }
+
+    location /media/ {
+        alias   /var/opt/{{ project_name }}/media/;
+
+        # Stop deep linking/hotlinking images
+        valid_referers none blocked www.forgesolar.com forgesolar.com;
+        if ($invalid_referer) {
+            return   403;
+        }
+    }
+
+    location / {
+        if (-f /opt/{{ project_name }}/env/maintenance.html) {
+            return 503;
+        }
+
+        client_max_body_size 4M;
+
+        # an HTTP header important enough to have its own Wikipedia entry:
+        #   http://en.wikipedia.org/wiki/X-Forwarded-For
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # enable this if and only if you use HTTPS, this helps
+        # set the proper protocol for doing redirects:
+        # proxy_set_header X-Forwarded-Proto https;
+
+        # pass the Host: header from the client right along so redirects
+        # can be set properly within the application
+        proxy_set_header Host $http_host;
+
+        # we don't want nginx trying to do something clever with
+        # redirects, we set the Host: header above already.
+        proxy_redirect off;
+
+        # set "proxy_buffering off" *only* for Rainbows! when doing
+        # Comet/long-poll stuff.  It's also safe to set if you're
+        # using only serving fast clients with Unicorn + nginx.
+        # Otherwise you _want_ nginx to buffer responses to slow
+        # clients, really.
+        # proxy_buffering off;
+
+        # Try to serve static files from nginx, no point in making an
+        # *application* server like Unicorn/Rainbows! serve static files.
+        if (!-f $request_filename) {
+            proxy_pass http://wsgi_server;
+            break;
+        }
+    }
+
+    # Error pages
+    error_page 500 502 504 /500.html;
+    location = /500.html {
+        root /opt/{{ project_name }}/src/templates/;
+    }
+
+    if (-f /opt/forgesolar/src/templates/maintenance.html) {
+        return 503;
+    }
+    error_page 503 @maintenance;
+    location @maintenance {
+        rewrite ^(.*)$ /maintenance.html break;
+    }
+}

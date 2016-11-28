@@ -1,0 +1,55 @@
+---
+
+- include: setup_Debian.yml
+  when: ansible_os_family == "Debian"
+
+
+- name: Ensure the PostgreSQL service is running
+  service: name=postgresql state=started enabled=yes
+
+- name: Ensure database is created
+  become_user: postgres
+  vars:  # to avoid issue with becoming non-privileged user in Ansible 2.1.1
+    ansible_ssh_pipelining: true
+  postgresql_db: name={{ db_name }}
+                 encoding='UTF-8'
+                 lc_collate='en_US.UTF-8'
+                 lc_ctype='en_US.UTF-8'
+                 template='template0'
+                 state=present
+
+- name: Ensure user has access to the database
+  become_user: postgres
+  vars:  # to avoid issue with becoming non-privileged user in Ansible 2.1.1
+    ansible_ssh_pipelining: true
+  postgresql_user: db={{ db_name }}
+                   name={{ db_user }}
+                   password={{ db_password }}
+                   priv=ALL
+                   state=present
+
+- name: Ensure user does not have unnecessary privileges
+  become_user: postgres
+  vars:  # to avoid issue with becoming non-privileged user in Ansible 2.1.1
+    ansible_ssh_pipelining: true
+  postgresql_user: name={{ db_user }}
+                   role_attr_flags=NOSUPERUSER,NOCREATEDB
+                   state=present
+
+- name: Let user create db in dev, for testing
+  become_user: postgres
+  vars:  # to avoid issue with becoming non-privileged user in Ansible 2.1.1
+    ansible_ssh_pipelining: true
+  postgresql_user: name={{ db_user }}
+                   role_attr_flags=CREATEDB
+                   state=present
+  when: vagrant_mode == true
+
+- name: Do NOT let user create db when not in testing
+  become_user: postgres
+  vars:  # to avoid issue with becoming non-privileged user in Ansible 2.1.1
+    ansible_ssh_pipelining: true
+  postgresql_user: name={{ db_user }}
+                   role_attr_flags=NOCREATEDB
+                   state=present
+  when: vagrant_mode == false

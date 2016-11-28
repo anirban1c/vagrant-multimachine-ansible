@@ -1,0 +1,4 @@
+---
+
+supervisor_log_file: "{{ log_dir }}/supervisor.log"
+supervisorctl_path:

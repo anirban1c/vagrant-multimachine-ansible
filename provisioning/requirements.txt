@@ -1,0 +1,13 @@
+decorator==4.0.10
+Flask==0.11.1
+gunicorn==19.6.0
+Jinja2==2.8
+MarkupSafe==0.23
+PyYAML==3.12
+simplejson==3.10.0
+six==1.10.0
+Werkzeug==0.11.11
+requests==2.12.1
+Flask-WTF==0.13.1
+WTForms==2.1
+Flask-DebugToolbar==0.10.0

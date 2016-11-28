@@ -1,0 +1,108 @@
+---
+
+# The webserver user needs access to the wsgi file and the appropriate log files.
+# This includes being able to move through the parent dirs.
+#
+# References:
+# http://stackoverflow.com/a/16409205
+
+#- name: Project user and group (which includes celery user) can access media and static dirs
+#  file:
+#    owner: "{{ proj_user }}"
+#    group: "{{ proj_group }}"
+#    mode: u=rwX,g=rwX
+    # owner can read, write, execute dirs and read files.
+    # group and others can do nothing.
+#    recurse: yes
+#    path: "{{ item }}"
+#  with_items:
+#    - "{{ media_dir }}"
+#    - "{{ static_dir }}"
+
+# NOTE: this is separate so it's skipped when in vagrant, to avoid messing perms up
+- name: Project user and grp can read, execute src dirs and read files.
+  file:
+    owner: "{{ proj_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwX,g=rX,o=
+    recurse: yes
+    path: "{{ item }}"
+  with_items:
+    - "{{ src_dir }}"
+    - "{{ src_dir }}/apps"
+    - "{{ src_dir }}/static/bower_components"
+    - "{{ src_dir }}/{{ project_name }}"
+    - "{{ src_dir }}/{{ project_name }}/wsgi"
+    - "{{ src_dir }}/requirements"
+    - "{{ src_dir }}/templates"
+    - "{{ src_dir }}/.git"
+  when: vagrant_mode == false
+
+# Separate task from above to avoid messing with permissions for owner in src dir
+- name: Users like webserver and proj can access path to src and to app log
+  file:
+    path: "{{ item }}"
+    mode: u+rX,g+rX
+    state: directory
+  with_items:
+    - "/opt/"
+    - "/opt/{{ project_name }}/"
+    - "/opt/{{ project_name }}/python-eggs/"
+    - "/var/"
+    - "/var/log/"
+    - "{{ log_dir }}"
+
+# Webserver needs access to dir of wsgi file. Doesn't need read access to it, though.
+- name: Webserver can get to wsgi file
+  file:
+    path: "{{ item }}"
+    mode: o+X
+    state: directory
+  with_items:
+    - "/opt/"
+    - "/opt/{{ project_name }}/"
+    - "/opt/{{ project_name }}/src/"
+    - "/opt/{{ project_name }}/src/{{ project_name }}/"
+    - "/opt/{{ project_name }}/src/{{ project_name }}/wsgi/"
+
+
+# Make SURE it's uppercase X, so doesn't apply to files.
+- name: Webserver user can read, WRITE media dirs and read files
+  file:
+    path: "{{ media_dir }}"
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwX,g=rwX,o=
+    recurse: yes
+
+- name: Webserver user can only read static dirs and read files. proj group can read, write
+  file:
+    path: "{{ static_dir }}"
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rX,g=rwX,o=
+    recurse: yes
+
+#
+- name: Give gunicorn user path access to dir containing socket file and media, static
+  file:
+    path: "{{ item }}"
+    mode: o+X
+    recurse: no
+    state: directory
+  with_items:
+    - /opt/
+    - "{{ home_dir }}"
+    - "{{ venv_dir }}"
+    - "{{ venv_dir }}/run"
+    - "{{ src_dir }}"
+    - "{{ media_dir }}"
+    - "{{ static_dir }}"
+
+- name: Give gunicorn user and webserver group access to socket file itself
+  file:
+    path: "{{ venv_dir }}/run/gunicorn.sock"
+    owner: "{{ gunicorn_user }}"
+    group: "{{ webserver_group }}"
+    mode: u+rw,g+rw,o=
+    state: file

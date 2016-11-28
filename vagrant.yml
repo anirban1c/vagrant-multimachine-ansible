@@ -1,0 +1,33 @@
+---
+- name: web1
+  box: puppetlabs/ubuntu-14.04-64-nocm
+  prov: webserver
+  ram: 512
+  ip: 192.168.10.131
+  hostname: web1.dev
+  environment: development
+  
+- name: app1
+  box: puppetlabs/ubuntu-14.04-64-nocm
+  prov: appserver
+  ram: 512
+  ip: 192.168.10.132
+  hostname: app1.dev
+  environment: development
+  
+- name: app2
+  box: puppetlabs/ubuntu-14.04-64-nocm
+  prov: appserver
+  ram: 512
+  ip: 192.168.10.133
+  hostname: app2.dev
+  environment: development
+
+- name: db1
+  box: puppetlabs/ubuntu-14.04-64-nocm
+  prov: dbserver
+  ram: 512
+  ip: 192.168.10.134
+  hostname: db1.dev
+  environment: development
+

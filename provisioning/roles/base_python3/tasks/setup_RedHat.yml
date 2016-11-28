@@ -1,0 +1,39 @@
+---
+
+# Add extra repo for supervisor and Python 3
+- name: Install IUS Python 3 Repository
+  yum: name=http://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-14.ius.centos6.noarch.rpm
+
+
+- name: Install base system packages
+  yum: name={{ item }} state=installed
+  with_items:
+    - gcc
+    - git
+    - supervisor
+  tags: packages
+
+
+- name: Install python 3 system packages
+  yum: name={{ item }} state=installed
+  with_items:
+    - python34u
+    - python34u-devel
+    - python34u-pip
+    - libselinux-python
+  tags: packages
+
+
+- name: Install Pillow (Python package) dependencies
+  yum: name={{ item }} state=installed
+  with_items:
+    - libtiff-devel
+    - libjpeg-devel
+    - libzip-devel
+    - freetype-devel
+    - lcms2-devel
+    - libwebp-devel
+    - tcl-devel
+    - tk-devel
+  when: use_pillow == true
+  tags: packages

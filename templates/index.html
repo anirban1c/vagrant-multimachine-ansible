@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+    <title>A Page</title>
+    <script type="text/javascript"
+            src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+    <style>
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+<form id="someform" method="post" action="/getRoadClosuers">
+    <p>Enter A Road (e.g M25) : <input type=text size=5 name="road" id="road" value="M25">
+
+    <p><input type="submit" name="submit" id="btnresult" value="Get All Road Closures"></input>
+
+</form>
+<div id="busy"></div>
+<div id="status"></div>
+
+<table id="result">
+    <thead>
+        <th>Local Authority</th>
+        <th>location</th>
+        <th>closure type</th>
+        <th>status</th>
+        <th>start date</th>
+    </thead>
+    <tbody id = "i1">
+
+    </tbody>
+</table>
+
+
+
+<script type="text/javascript">
+
+
+
+    $("#someform").submit(function(e) {
+        event.preventDefault();
+        var url = "/getRoadClosuers";
+        var road = $("#someform").find('input[name="road"]').val();
+
+        console.log('submitting the form : ' + road);
+        var post = $.ajax({
+            type: "POST",
+            url: url,
+            dataType : "json",
+            data: {
+                road : road,
+            },
+        });
+        $("#busy").after('<b> Getting Results ...........wait for it .... </b>');
+
+
+        post.done(function(data) {
+
+            console.log('success: processing request data');
+
+            $("#status").after('<b> Success : Total works - '+ data.result.length + '  </b>');
+            $.each(data.result, function (item) {
+                //console.log(JSON.stringify(item));
+                var row = "<tr><td>" + JSON.stringify(this.local_authority) + "</td>";
+                row += ("<td>" + JSON.stringify(this.location) + "</td>");
+                row += ("<td>" + JSON.stringify(this.closure_type) + "</td>");
+                row += ("<td>" + JSON.stringify(this.status) + "</td>");
+                row += ("<td>" + JSON.stringify(this.start_date) + "</td></tr>");
+                jQuery("#i1").after(row);
+            });
+            $("#busy").remove();
+
+        });
+
+    });
+
+
+
+
+    /*  $(function() {
+     var items = [];
+     var submit_form = function (e) {
+     $.getJSON($SCRIPT_ROOT + '/getRoadClosuers', {
+     road: $('input[name="road"]').val(),
+     }).done(function (data) {
+     $.each(data.result, function (i, item) {
+     $("<ul>").attr("li", item.location).appendTo("#calculate");
+     });
+     if ( i === 3 ) {
+     return false;
+     }
+     });
+     };
+
+     $('#btnresult').bind('click', submit_form);
+
+     $('input[type=text]').bind('keydown', function (e) {
+     if (e.keyCode == 13) {
+     submit_form(e);
+     }
+
+     $('input[name=road]').focus();
+     });
+
+     });*/
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+---
+
+celery_user: celery
+celery_group: celery
+
+celery_appname: "celery_{{ project_name }}"
+celery_scripts_dir: "{{ venv_dir }}/scripts"
+celery_template_file: celery_start.j2
+celery_template_file2: celery_start2.j2
+celery_template_file3: celery_start3.j2
+
+celery_log_dir: "{{ log_dir }}"
+celery_log_file: "{{ celery_log_dir }}/celery.log"
+
+flower_admin_password: password
+
+celerybeat_appname: "celerybeat_{{ project_name }}"
+celerybeat_scripts_dir: "{{ venv_dir }}/scripts"
+celerybeat_template_file: celerybeat_start.j2
+
+celerybeat_schedule_file: "{{ data_dir }}/celerybeat-schedule"
+celerybeat_pid_file: "{{ data_dir }}{{ celerybeat_appname }}.pid"
+
+celerybeat_log_dir: "{{ log_dir }}"
+celerybeat_log_file: "{{ celerybeat_log_dir }}/celerybeat.log"

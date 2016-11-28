@@ -1,0 +1,20 @@
+---
+
+- name: Ensure bash, OpenSSl, and libssl are the latest versions
+  yum: name={{ item }} state=latest
+  with_items:
+    - bash
+    - openssl
+    - openssl-devel
+  tags: packages
+
+# CentOS 6.6 firewall packages (removed in 6.6 for some reason)
+# Must run system-config-firewall-tui to set up firewall. Enable SSH, HTTP and HTTPS on vagrant.
+- name: Install firewall packages
+  yum: name={{ item }} state=installed
+  with_items:
+    - authconfig
+    - system-config-firewall-base
+    - system-config-firewall
+    - system-config-firewall-tui
+

@@ -1,0 +1,43 @@
+---
+
+- name: Create the application log file
+  file:
+    path: "{{ django_log }}"
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rw,o=
+    state: touch
+  notify: reload nginx
+
+- name: Create the application log file for errors only
+  file:
+    path: "{{ django_error_log }}"
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rw,g=rw,o=
+    state: touch
+  notify: reload nginx
+
+- name: Add gunicorn user to project group
+  user: name={{ gunicorn_user }} group={{ proj_group }} state=present
+
+- name: Add project user to vagrant group when using vagrant, so it can access config file
+  user: name={{ proj_user }} groups=vagrant append=yes
+  when: vagrant_mode == true
+
+- name: Add vagrant user to project group when using vagrant, so it can access config file
+  user: name=vagrant groups={{ proj_group }} append=yes
+  when: vagrant_mode == true
+
+
+- include: setup_git_repo.yml
+  tags: deploy
+
+- include: setup_frontend.yml
+  tags: deploy
+
+- include: setup_django.yml
+  tags: deploy
+
+- include: set_file_permissions.yml
+  tags: deploy

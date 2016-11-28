@@ -1,0 +1,19 @@
+---
+
+# MYSQL DATABASES
+mysql_databases:
+  # Site DB
+  - { name: "{{ project_name }}", collation: utf8_general_ci, encoding: utf8, replicate: 1 },
+  # CMS database
+  - { name: "{{ db_name_cms }}", collation: utf8_general_ci, encoding: utf8, replicate: 1 }
+
+# MYSQL USERS
+mysql_users:
+  - { name: "{{ db_user }}", host: 127.0.0.1, password: "{{ db_password }}", priv: "{{ db_name }}.*:ALL" },
+  - { name: "{{ db_user }}", host: localhost, password: "{{ db_password }}", priv: "{{ db_name }}.*:ALL" },
+    # Users for CMS db
+  - { name: "{{ db_user_cms }}", host: 127.0.0.1, password: "{{ db_password_cms }}", priv: "{{ db_name_cms }}.*:ALL" },
+  - { name: "{{ db_user_cms }}", host: localhost, password: "{{ db_password_cms }}", priv: "{{ db_name_cms }}.*:ALL" }
+# Full Example:
+# mysql_users:
+#   - { name: example, host: 127.0.0.1, password: secret, priv: *.*:USAGE }

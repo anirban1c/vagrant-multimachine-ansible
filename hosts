@@ -1,0 +1,9 @@
+[web-servers]
+web1.dev
+
+[app-servers]
+app1.dev
+app2.dev
+
+
+

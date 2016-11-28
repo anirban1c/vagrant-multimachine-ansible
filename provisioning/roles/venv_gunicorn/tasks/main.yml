@@ -1,0 +1,108 @@
+---
+
+
+- name: Install Virtualenv
+  pip: name=virtualenv
+
+- name: Create the virtualenv
+  pip:
+      requirements: /vagrant/provisioning/requirements.txt
+      virtualenv: "{{ venv_dir }}"
+      virtualenv_python: python3.4
+
+
+- name: install requirements for py3
+  shell:  . "{{ venv_dir }}"/bin/activate && pip install -r /vagrant/provisioning/requirements.txt
+
+
+- name: install supervisor for py3
+  shell:  . "{{ venv_dir }}"/bin/activate && cd /var/tmp && rm -rf supervisor && git clone https://github.com/Supervisor/supervisor.git && cd supervisor && pip install -e .
+
+
+
+
+#- name: Create the virtualenv
+#  command: virtualenv {{ venv_dir }} --no-site-packages --python=python3
+#           creates={{ venv_dir }}/bin/activate
+
+# Access perms. Also run in django/perms file
+- name: chwon to appserver
+  file:
+    path: "{{ venv_dir }}"
+    mode: o+X
+    recurse: yes
+    state: directory
+
+- name: Create python-egg dir
+  file:
+    path: "{{ home_dir }}/python-eggs"
+    state: directory
+    owner: "{{ webserver_user }}"
+    group: "{{ proj_group }}"
+    mode: u=rwx,g=rwX,o=
+  tags: deploy
+
+- name: Ensure gunicorn is installed
+  pip: virtualenv={{ venv_dir }} name=gunicorn
+
+- name: Create the Gunicorn script config file
+  template: src=gunicorn_start.j2
+            dest={{ venv_dir }}/bin/gunicorn_start
+            owner={{ gunicorn_user }}
+            group={{ gunicorn_group }}
+            mode=0755
+            backup=yes
+  tags: deploy
+
+- name: Create run dir
+  file:
+    path: "{{ run_dir_path }}"
+    state: directory
+    owner: "{{ gunicorn_user }}"
+    group: "{{ proj_group }}"
+    recurse: yes
+    mode: u=rwX,g=rwx,o=rX
+
+# Log file permissions
+- name: Create project log dir if not already present
+  file:
+    path: "{{ log_dir }}"
+    state: directory
+    owner: "{{ gunicorn_user }}"
+    group: "{{ gunicorn_group }}"
+    mode: u+rwX,g+rw,o=rX
+
+
+- name: Create gunicorn log file
+  file:
+    path: "{{ gunicorn_log }}"
+    state: touch
+    owner: "{{ gunicorn_user }}"
+    group: "{{ gunicorn_group }}"
+    mode: u=rw,g=rw,o=
+
+
+# Access perms. Also run in django/perms file
+- name: Give gunicorn user path access to dir containing socket file and media, static
+  file:
+    path: "{{ item }}"
+    mode: o+X
+    recurse: no
+    state: directory
+  with_items:
+    - /opt/
+    - "{{ home_dir }}"
+    - "{{ venv_dir }}"
+    - "{{ venv_dir }}/run"
+    - "{{ src_dir }}"
+    - "{{ media_dir }}"
+    - "{{ static_dir }}"
+
+#- name: Create the virtualenv postactivate script to set environment variables
+#  template: src=virtualenv_postactivate.j2
+#            dest={{ venv_dir }}/bin/postactivate
+#            owner={{ gunicorn_user }}
+#            group={{ gunicorn_group }}
+#            mode=0640
+#            backup=yes
+#  tags: deploy

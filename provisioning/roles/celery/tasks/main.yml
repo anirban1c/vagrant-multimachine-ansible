@@ -1,0 +1,204 @@
+---
+
+# Set up celery user and group
+- name: Create the celery user
+  user: name={{ celery_user }} state=present
+
+- name: Create the celery group
+  group: name={{ celery_group }} system=yes state=present
+
+- name: Add the celery user to the celery group
+  user: name={{ celery_user }} group={{ celery_group }} state=present
+
+- name: Add the celery user to the PROJECT group
+  user: name={{ celery_user }} groups={{ proj_group }} append=yes state=present
+
+- name: Add celery user to vagrant group when using vagrant, so it can access config file
+  user: name={{ celery_user }} groups=vagrant append=yes
+  when: vagrant_mode == true
+
+
+# Set up celery in python
+- name: Ensure celery is installed
+  pip: virtualenv={{ venv_dir }} name=celery
+
+- name: Create the folder for the celery scripts
+  file: path={{ celery_scripts_dir }}
+        owner={{ webserver_user }}
+        group={{ proj_group }}
+        mode=0774
+        state=directory
+  tags:
+    - celery
+
+- name: Create the first celery script file
+  template: src={{ celery_template_file }}
+            dest={{ celery_scripts_dir }}/{{ celery_appname }}_start
+            owner={{ celery_user }}
+            group={{ celery_group }}
+            mode=0755
+  tags:
+    - celery
+
+- name: Create the second celery script file
+  template: src={{ celery_template_file2 }}
+            dest={{ celery_scripts_dir }}/{{ celery_appname }}2_start
+            owner={{ celery_user }}
+            group={{ celery_group }}
+            mode=0755
+  tags:
+    - celery
+
+- name: Create the third celery script file
+  template: src={{ celery_template_file3 }}
+            dest={{ celery_scripts_dir }}/{{ celery_appname }}3_start
+            owner={{ celery_user }}
+            group={{ celery_group }}
+            mode=0755
+  tags:
+    - celery
+
+- name: Create the Supervisor config file
+  template: src=supervisor_celery.conf.j2
+            dest=/etc/supervisor/conf.d/{{ celery_appname }}.conf
+  tags:
+    - celery
+
+- name: Create the celery app log file
+  file: path={{ celery_log_file }}
+        owner={{ celery_user }}
+        group={{ celery_group }}
+        state=touch
+  tags:
+    - celery
+
+- name: allow celery user access to project config dir with celery in it
+  file:
+    path: "{{ src_dir }}/{{ project_name }}"
+    group: "{{ proj_group }}"
+    mode: g+X
+    state: directory
+  tags:
+    - celery
+
+- name: allow celery user access to celery.py file
+  file:
+    path: "{{ src_dir }}/{{ project_name }}/celery.py"
+    group: "{{ proj_group }}"
+    mode: g+r
+  tags:
+    - celery
+
+# Set up celerybeat (same way as celery)
+- name: Create the folder for the celerybeat scripts
+  file: path={{ celerybeat_scripts_dir }}
+        owner={{ webserver_user }}
+        group={{ proj_group }}
+        mode=0774
+        state=directory
+  tags:
+    - celery
+
+- name: Create the data dir
+  file: path={{ data_dir }}
+        owner={{ webserver_user }}
+        group={{ proj_group }}
+        mode=0774
+        state=directory
+  tags:
+    - celery
+
+- name: Create the celerybeat script file
+  template: src={{ celerybeat_template_file }}
+            dest={{ celerybeat_scripts_dir }}/{{ celerybeat_appname }}_start
+            owner={{ celery_user }}
+            group={{ celery_group }}
+            mode=0755
+  tags:
+    - celery
+
+- name: Create the Supervisor config file
+  template: src=supervisor_celerybeat.conf.j2
+            dest=/etc/supervisor/conf.d/{{ celerybeat_appname }}.conf
+  tags:
+    - celery
+
+- name: Create the celerybeat log file
+  file: path={{ celerybeat_log_file }}
+        owner={{ celery_user }}
+        group={{ celery_group }}
+        state=touch
+  tags:
+    - celery
+
+- name: Create the celerybeat pid file
+  file: path={{ celerybeat_pid_file }}
+        owner={{ celery_user }}
+        group={{ celery_group }}
+        state=touch
+  tags:
+    - celery
+
+#- name: allow celery user access to project config dir with celery in it
+#  file:
+#    path: "{{ src_dir }}/{{ project_name }}"
+#    group: "{{ proj_group }}"
+#    mode: g+X
+#    state: directory
+#  tags:
+#    - celery
+
+#- name: allow celery user access to celerybeat.py file
+#  file:
+#    path: "{{ src_dir }}/{{ project_name }}/celery.py"
+#    group: "{{ proj_group }}"
+#    mode: g+r
+#  tags:
+#    - celery
+
+
+# Refresh Supervisor for celery and celerybeat
+- name: Re-read the Supervisor config files
+  command: supervisorctl reread
+  tags:
+    - celery
+
+- name: Update Supervisor to add the app in the process group
+  command: supervisorctl update
+  tags:
+    - celery
+
+- name: Check running applications managed by supervisor
+  shell: supervisorctl status
+  register: supervisor_applications
+  tags:
+    - celery
+    - deploy
+
+- name: Restart the celery_app app
+  supervisorctl: name={{ celery_appname }} state=restarted
+  when: supervisor_applications.stdout.find('{{ celery_appname }}') != -1
+  tags:
+    - celery
+    - deploy
+
+- name: Restart the second celery app
+  supervisorctl: name={{ celery_appname }}2 state=restarted
+  when: supervisor_applications.stdout.find('{{ celery_appname }}2') != -1
+  tags:
+    - celery
+    - deploy
+
+- name: Restart the third celery app
+  supervisorctl: name={{ celery_appname }}3 state=restarted
+  when: supervisor_applications.stdout.find('{{ celery_appname }}3') != -1
+  tags:
+    - celery
+    - deploy
+
+- name: "Restart the celerybeat_app app"
+  supervisorctl: name={{ celerybeat_appname }} state=restarted
+  when: supervisor_applications.stdout.find('{{ celerybeat_appname }}') != -1
+  tags:
+    - celery
+    - deploy

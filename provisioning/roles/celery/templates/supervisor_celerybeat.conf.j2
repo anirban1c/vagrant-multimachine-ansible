@@ -1,0 +1,14 @@
+[program:{{ celerybeat_appname }}]
+; from celery github: supervisord/celerybeat.conf
+command={{ celerybeat_scripts_dir }}/{{ celerybeat_appname }}_start
+
+user={{ celery_user }}
+
+stdout_logfile={{ celerybeat_log_file }}
+redirect_stderr = true
+
+autostart=true
+autorestart=true
+startsecs=10
+
+priority=999
